@@ -1,18 +1,18 @@
-  #include "ppm_image.h"
+ #include "ppm_image.h"
 
 #include <array>
 #include <fstream>
 #include <string_view>
 
 using namespace std;
-
 namespace img_lib {
-
 static const string_view PPM_SIG = "P6"sv;
 static const int PPM_MAX = 255;
-
 bool SavePPM(const Path& file, const Image& image) {
     ofstream out(file, ios::binary);
+	if (!out) {
+        return false;
+    }
     out << PPM_SIG << '\n' << image.GetWidth() << ' ' << image.GetHeight() << '\n' << PPM_MAX << '\n';
     const int w = image.GetWidth();
     const int h = image.GetHeight();
@@ -30,11 +30,12 @@ bool SavePPM(const Path& file, const Image& image) {
 }
 Image LoadPPM(const Path& file) {
     ifstream ifs(file, ios::binary);
+	if (!ifs) {
+        return {};
+    }
     std::string sign;
     int w, h, color_max;
-
     ifs >> sign >> w >> h >> color_max;
-
     if (sign != PPM_SIG || color_max != PPM_MAX) {
         return {};
     }
@@ -44,11 +45,9 @@ Image LoadPPM(const Path& file) {
     }
     Image result(w, h, Color::Black());
     std::vector<char> buff(w * 3);
-
     for (int y = 0; y < h; ++y) {
         Color* line = result.GetLine(y);
         ifs.read(buff.data(), w * 3);
-
         for (int x = 0; x < w; ++x) {
             line[x].r = static_cast<byte>(buff[x * 3 + 0]);
             line[x].g = static_cast<byte>(buff[x * 3 + 1]);
@@ -57,5 +56,4 @@ Image LoadPPM(const Path& file) {
     }
     return result;
 }
-
 }  // namespace img_lib

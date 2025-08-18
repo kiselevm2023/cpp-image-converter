@@ -1,4 +1,4 @@
-  #include "bmp_image.h"
+#include "bmp_image.h"
 #include "pack_defines.h"
 
 #include <array>
@@ -11,7 +11,6 @@ const char first_part_of_the_signature = 'B';
 const char second_part_of_the_signature = 'M';
 
 namespace img_lib {
-
 PACKED_STRUCT_BEGIN BitmapFileHeader
 {
     char sign1 = first_part_of_the_signature; 
@@ -21,7 +20,6 @@ PACKED_STRUCT_BEGIN BitmapFileHeader
     uint32_t indention = 0; 
 }
 PACKED_STRUCT_END
-
 PACKED_STRUCT_BEGIN BitmapInfoHeader 
 {
     uint32_t header_size = 40; 
@@ -37,34 +35,27 @@ PACKED_STRUCT_BEGIN BitmapInfoHeader
     uint32_t colors = 0x1000000; 
 }
 PACKED_STRUCT_END
-
 static int GetBMPStride(int w) 
 {
     return 4 * ((w * 3 + 3) / 4);
 }
-
-bool SaveBMP(const Path& file, const Image& image) 
-{
-    ofstream out(file, ios::binary);
-  
+bool SaveBMP(const Path& file, const Image& image) {
+    ofstream out(file, ios::binary);	
+	if (!out) {
+        return false;
+    }  
     int width = image.GetWidth();
-    int height = image.GetHeight();
-  
-    const int bmp_stride = GetBMPStride(width);
-  
+    int height = image.GetHeight();  
+    const int bmp_stride = GetBMPStride(width);  
     BitmapFileHeader file_header;
-    BitmapInfoHeader info_header;
-  
+    BitmapInfoHeader info_header;  
     file_header.indention = sizeof(BitmapFileHeader) + sizeof(BitmapInfoHeader);
-    file_header.file_size = file_header.indention + bmp_stride * height;
-  
+    file_header.file_size = file_header.indention + bmp_stride * height;  
     info_header.width = width;
     info_header.height = height;
-    info_header.bytes_at_data = bmp_stride * height;
-  
+    info_header.bytes_at_data = bmp_stride * height;  
     out.write(reinterpret_cast<const char*>(&file_header), sizeof(BitmapFileHeader));
-    out.write(reinterpret_cast<const char*>(&info_header), sizeof(BitmapInfoHeader));
-  
+    out.write(reinterpret_cast<const char*>(&info_header), sizeof(BitmapInfoHeader));  
     std::vector<char> buff(bmp_stride);
     for (int i = height - 1; i >= 0; --i) 
     {
@@ -81,32 +72,33 @@ bool SaveBMP(const Path& file, const Image& image)
     return out.good();
 } 
 Image LoadBMP(const Path& file) 
-{
-    
-    ifstream input(file, ios::binary); 
+{    
+    ifstream input(file, ios::binary);
+	if (!input) {
+        return {};
+    } 
     BitmapFileHeader file_header;
     BitmapInfoHeader info_header; 
     input.read(reinterpret_cast<char*>(&file_header), sizeof(BitmapFileHeader));
+	if (!input || file_header.sign1 != first_part_of_the_signature || file_header.sign2 != second_part_of_the_signature) {
+        return {};
+    }	
     input.read(reinterpret_cast<char*>(&info_header), sizeof(BitmapInfoHeader)); 
     int width = info_header.width;
     int height = info_header.height;
     auto color = Color::Black(); 
     const int bmp_stride = GetBMPStride(width);    
     std::vector<char> buff(bmp_stride);
-    Image result(width, height, color);
- 
-    for (int i = height - 1; i >= 0; --i) {
-        
+    Image result(width, height, color); 
+    for (int i = height - 1; i >= 0; --i) {        
         input.read(buff.data(), bmp_stride);
-        Color* line = result.GetLine(i);
-        
+        Color* line = result.GetLine(i);        
         for (int j = 0; j != width; ++j) {
             line[j].b = static_cast<byte>(buff[j * 3]);
             line[j].g = static_cast<byte>(buff[1 + j * 3]);
             line[j].r = static_cast<byte>(buff[2 + j * 3]);
         }
-    }
- 
+    } 
     return result;
 }
 }
